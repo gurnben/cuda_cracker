@@ -1,30 +1,25 @@
 NVCC = /usr/local/cuda-8.0/bin/nvcc
 CC = g++
 GENCODE_FLAGS = -arch=sm_30
-CC_FLAGS = -c 
+CC_FLAGS = -c
 NVCCFLAGS = -m64 -O3 -Xptxas -v
 #uncomment NVCCFLAGS below and comment out above, if you want to use cuda-gdb
 #NVCCFLAGS = -g -G -m64 --compiler-options -Wall
-OBJS = blur.o wrappers.o h_blur.o d_blur.o
-.SUFFIXES: .cu .o .h 
+OBJS = cuda_cracker.o wrappers.o d_cracker.o
+.SUFFIXES: .cu .o .h
 .cu.o:
-	$(NVCC) $(CC_FLAGS) $(NVCCFLAGS) $(GENCODE_FLAGS) $< -o $@
+	$(NVCC) $(CC_FLAGS) $(NVCCFLAGS) $(GENCODE_FLAGS) -lcrypto $< -o $@
 
-all: blur generate
+all: cuda_cracker
 
-blur: $(OBJS)
-	$(CC) $(OBJS) -L/usr/local/cuda/lib64 -lcuda -lcudart -o blur
+cuda_cracker: $(OBJS)
+	$(CC) $(OBJS) -L/usr/local/cuda/lib64 -lcuda -lcudart -lcrypto -o cuda_cracker
 
-blur.o: blur.cu wrappers.h h_blur.h d_blur.h
+cuda_cracker.o: cuda_cracker.cu wrappers.h d_cracker.h
 
-h_blur.o: h_blur.cu h_blur.h CHECK.h
-
-d_blur.o: d_blur.cu d_blur.h CHECK.h
+d_cracker.o: d_cracker.cu d_cracker.h CHECK.h
 
 wrappers.o: wrappers.cu wrappers.h
 
-generate: generate.c
-	gcc -O2 generate.c -o generate
-
 clean:
-	rm generate blur *.o
+	rm cuda_cracker *.o
