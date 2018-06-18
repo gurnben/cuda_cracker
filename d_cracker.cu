@@ -72,18 +72,16 @@ float d_crack(char * hash, int hashLen, char * outpass) {
 }
 
 /*
-   d_blurKernel
+   d_crack_kernel
    Kernel code executed by each thread on its own data when the kernel is
-   launched. Shared memory is used for both the mask and the pixels.
-   Threads cooperate in loading the shared memory.  After the
-   shared memor is filled, the convolution is performed.
+   launched. Constant memory is used for the set of all possible characters,
+   in this case, lowercase.
+   Threads cooperate to help build a possible password built from the Constant
+   character array.
 
-   Pout - array that is filled with the blur of each pixel.
-   Pin - array contains the color pixels to be blurred.
-   width and height -  dimensions of the image.
-   pitch - size of each row.
-   maskWidth - dimensions of the mask to be used.
-   mask - contains mask used for the convolution.
+   Hash - array filled with characters to crack.
+   HashLen - length of the given hash
+   d_result - potential password result.
 
 */
 
