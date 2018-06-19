@@ -9,7 +9,7 @@
 
 //prototype for the kernel
 __global__ void d_crack_kernel(unsigned char * hash, int hashLen,
-                                unsigned char * d_result);
+                                int length, unsigned char * d_result);
 
 //constant array containing all the possible characters in the password
 __constant__ char VALID_CHARS[NUMCHARS];
@@ -35,6 +35,7 @@ float d_crack(unsigned char * hash, int hashLen, unsigned char * outpass) {
     //record the starting time
     CHECK(cudaEventRecord(start_cpu));
 
+    int passLength = 2;
     int size = hashLen * sizeof(char);
     int outsize = MAX_PASSWORD_LENGTH * sizeof(char);
 
@@ -45,17 +46,17 @@ float d_crack(unsigned char * hash, int hashLen, unsigned char * outpass) {
 
     //build the const array of all lowercase characters
     char VALID_CHARS_CPU[NUMCHARS];
-    for (int i = 0; i < 24; i++) {
+    for (int i = 0; i < NUMCHARS; i++) {
       VALID_CHARS_CPU[i] = (char)(i + 97);
     }
     CHECK(cudaMemcpyToSymbol(VALID_CHARS, VALID_CHARS_CPU, NUMCHARS * sizeof(char)));
 
     CHECK(cudaMemcpy(d_hash, hash, size, cudaMemcpyHostToDevice));
 
-    dim3 block(BLOCKDIM, 1, 1);
-    dim3 grid(ceil(NUMCHARS/(float)(BLOCKDIM)), 1);
+    dim3 block(NUMCHARS, 1, 1);
+    dim3 grid(ceil(pow(NUMCHARS, passLength)/(float)(NUMCHARS)), 1);
 
-    d_crack_kernel<<<grid, block>>>(d_hash, hashLen, d_result);
+    d_crack_kernel<<<grid, block>>>(d_hash, hashLen, passLength, d_result);
 
     CHECK(cudaDeviceSynchronize());
 
@@ -86,6 +87,7 @@ float d_crack(unsigned char * hash, int hashLen, unsigned char * outpass) {
 
 */
 
-__global__ void d_crack_kernel(unsigned char * hash, int hashLen, unsigned char * d_result) {
-
+__global__ void d_crack_kernel(unsigned char * hash, int hashLen, int length,
+                                unsigned char * d_result) {
+  int blockIndex = blockIdx.x * blockDim.x;
 }
