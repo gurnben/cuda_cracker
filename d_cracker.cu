@@ -8,7 +8,8 @@
 #include "wrappers.h"
 
 //prototype for the kernel
-__global__ void d_crack_kernel(char * hash, int hashLen, char * d_result);
+__global__ void d_crack_kernel(unsigned char * hash, int hashLen,
+                                unsigned char * d_result);
 
 //constant array containing all the possible characters in the password
 __constant__ char VALID_CHARS[NUMCHARS];
@@ -22,7 +23,7 @@ __constant__ char VALID_CHARS[NUMCHARS];
 *   hashLen - the length of the hash
 *   outpass - the result password to return
 */
-float d_crack(char * hash, int hashLen, char * outpass) {
+float d_crack(unsigned char * hash, int hashLen, unsigned char * outpass) {
 
     cudaEvent_t start_cpu, stop_cpu;
     float cpuMsecTime = -1;
@@ -37,9 +38,9 @@ float d_crack(char * hash, int hashLen, char * outpass) {
     int size = hashLen * sizeof(char);
     int outsize = MAX_PASSWORD_LENGTH * sizeof(char);
 
-    char * d_hash;
+    unsigned char * d_hash;
     CHECK(cudaMalloc((void**)&d_hash, size));
-    char * d_result;
+    unsigned char * d_result;
     CHECK(cudaMalloc((void**)&d_result, outsize));
 
     //build the const array of all lowercase characters
@@ -87,6 +88,6 @@ float d_crack(char * hash, int hashLen, char * outpass) {
 
 */
 
-__global__ void d_crack_kernel(char * hash, int hashLen, char * d_result) {
+__global__ void d_crack_kernel(unsigned char * hash, int hashLen, unsigned char * d_result) {
 
 }

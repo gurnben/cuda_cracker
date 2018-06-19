@@ -5,7 +5,8 @@
 #include "d_cracker.h"
 #include "config.h"
 
-void parseCommandArgs(int, char **, char **);
+void parseCommandArgs(int argc, char * argv[], unsigned char ** password,
+                      unsigned long ** length);
 void printUsage();
 
 /*main
@@ -22,18 +23,31 @@ void printUsage();
 *              from code and teaching by Dr. Cindy Norris <@cindyanorris>
 */
 int main(int argc, char * argv[]) {
-    char * password, * outpass, * hash;
+    unsigned char * password, * outpass, * hash;
+    unsigned long * length;
     float gpuTime;
 
-    parseCommandArgs(argc, argv, &password);
+    parseCommandArgs(argc, argv, &password, &length);
 
-    outpass = (char *) Malloc(MAX_PASSWORD_LENGTH);
+    outpass = (unsigned char *) Malloc(MAX_PASSWORD_LENGTH);
+
+    hash = (unsigned char *)Malloc(128);
 
     //use the GPU to perform the color
-    //TODO: hash the input password
+    printf("%s", password);
+    MD5_CTX md5;
+    MD5_Init(&md5);
+    MD5_Update(&md5, password, *length);
+    MD5_Final(hash, &md5);
+    for (int i = 0; i < 16; i++)
+      printf("%x", hash[i]);
+    printf("\n");
     gpuTime = d_crack(hash, 64, outpass);
 
+    // printf("%s", outpass);
+
     free(outpass);
+    free(hash);
     return EXIT_SUCCESS;
 }
 
@@ -52,13 +66,15 @@ int main(int argc, char * argv[]) {
 *   argv      - the arguments to the utility
 *   password  - a pointer to the password variable to put the password in.
 */
-void parseCommandArgs(int argc, char * argv[], char ** password) {
+void parseCommandArgs(int argc, char * argv[], unsigned char ** password,
+                      unsigned long ** length) {
     int passIdx = argc - 1;
     //Password Entered must be 1 character or longer
     int len = strlen(argv[passIdx]);
     if (len < 1) printUsage();
     if (len > 100) printUsage();
-    (*password) = argv[passIdx];
+    (*password) = (unsigned char *) argv[passIdx];
+    (*length) = (unsigned long *)&len;
 
     //     Examples from Dr. Norris' code for other arguments
     // for (int i = 1; i < argc - 1; i++)
