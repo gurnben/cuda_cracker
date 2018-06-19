@@ -33,6 +33,15 @@ void printHash(unsigned char * hash, int len) {
   }
 }
 
+void printPassword(unsigned char * pass, int len) {
+  for (int k = 0; k < len; k++) {
+    printf("%s", (unsigned char *) &pass[k]);
+    if (k == len - 1) {
+      printf("\n");
+    }
+  }
+}
+
 /*d_crack
 *
 * Sets up and calls the kernal to brute-force a password hash.
@@ -104,6 +113,7 @@ float d_crack(unsigned char * hash, int hashLen, unsigned char * outpass) {
 
     unsigned char * ourHash = (unsigned char *) Malloc(hashLen);
     int numHashes = pow(NUMCHARS, passLength) * hashLen;
+    int z = 0;
     for (int i = 0; i < numHashes; i+=hashLen) {
       // printHash(hash, hashLen);
       for (int j = 0; j < hashLen; j++) {
@@ -113,10 +123,13 @@ float d_crack(unsigned char * hash, int hashLen, unsigned char * outpass) {
       // printf("%d\n", malloccmp(ourHash, hash, hashLen));
       if (malloccmp(ourHash, hash, hashLen)) {
         //TODO: Break here, we found the password
+        printf("Password: ");
+        printPassword(&passwords[z], 1);
       }
       for (int k = 0; k < hashLen; k++) {
         ourHash[k] = '\0';
       }
+      z +=(passLength + 1);
     }
     // for (int i = 0; i < pow(NUMCHARS, passLength) * hashLen; i++) {
     //   ourHash[i % hashLen] = hashes[i];
