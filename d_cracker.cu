@@ -15,6 +15,15 @@ __global__ void d_crack_kernel(unsigned char * hash, int hashLen,
 //constant array containing all the possible characters in the password
 __constant__ char VALID_CHARS[NUMCHARS];
 
+/*malloccmp
+* a compare like function that compares two strings of length.  It simply
+* compares the elements at each location.
+*
+* @params:
+*   str1   - an unsigned char pointer to the first character in string 1
+*   str2   - an unsigned char pointer to the first character in string 2
+*   length - the length of str1 and str2, the number of items compared.
+*/
 int malloccmp(unsigned char * str1, unsigned char * str2, int length) {
   for (int i = 0; i < length; i++) {
     if (str1[i] != str2[i]) {
@@ -24,6 +33,14 @@ int malloccmp(unsigned char * str1, unsigned char * str2, int length) {
   return 1;
 }
 
+/*printHash
+* prints len items starting from hash as hexadecimal.  Used to print hashes as
+* hex.
+*
+* @params:
+*   hash  - a pointer to the start of the hash to print
+*   len   - the number of items to print from hash.
+*/
 void printHash(unsigned char * hash, int len) {
   for (int k = 0; k < len; k++) {
     printf("%x", hash[k]);
@@ -33,6 +50,14 @@ void printHash(unsigned char * hash, int len) {
   }
 }
 
+/*printPassword
+* prints len characters of a string starting at pass.  Used to print the result
+* password.
+*
+* @params:
+*   pass  - an unsigned char pointer to the first element in the string to print
+*   len   - the number of items to print.
+*/
 void printPassword(unsigned char * pass, int len) {
   for (int k = 0; k < len; k++) {
     printf("%s", (unsigned char *) &pass[k]);
@@ -66,7 +91,7 @@ float d_crack(unsigned char * hash, int hashLen, unsigned char * outpass) {
     int passLength = 2;
     int size = hashLen * sizeof(char);
     int outsize = MAX_PASSWORD_LENGTH * sizeof(char);
-    int passoutsize = pow(NUMCHARS, passLength) * 3;
+    int passoutsize = pow(NUMCHARS, passLength) * (passLength + 1);
 
     unsigned char * d_hash;
     CHECK(cudaMalloc((void**)&d_hash, size));
@@ -151,6 +176,9 @@ float d_crack(unsigned char * hash, int hashLen, unsigned char * outpass) {
 
     CHECK(cudaFree(d_hash));
     CHECK(cudaFree(d_result));
+    free(ourHash);
+    free(passwords);
+    free(hashes);
 
     //record the ending time and wait for event to complete
     CHECK(cudaEventRecord(stop_cpu));
@@ -160,18 +188,17 @@ float d_crack(unsigned char * hash, int hashLen, unsigned char * outpass) {
     return cpuMsecTime;
 }
 
-/*
-   d_crack_kernel
-   Kernel code executed by each thread on its own data when the kernel is
-   launched. Constant memory is used for the set of all possible characters,
-   in this case, lowercase.
-   Threads cooperate to help build a possible password built from the Constant
-   character array.
-
-   Hash - array filled with characters to crack.
-   HashLen - length of the given hash
-   d_result - potential password result.
-
+/*d_crack_kernel
+*  Kernel code executed by each thread on its own data when the kernel is
+*  launched. Constant memory is used for the set of all possible characters,
+*  in this case, lowercase.
+*  Threads cooperate to help build a possible password built from the Constant
+*  character array.
+*  @params:
+*   hash     - array filled with characters to crack.
+*   hashLen  - length of the given hash
+*   length   - the length of the passwords to generate
+*   d_result - array of possible passwords.
 */
 
 __global__ void d_crack_kernel(unsigned char * hash, int hashLen, int length,
