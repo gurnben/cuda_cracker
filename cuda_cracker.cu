@@ -31,14 +31,19 @@ int main(int argc, char * argv[]) {
 
     outpass = (unsigned char *) Malloc(MAX_PASSWORD_LENGTH);
 
-    hash = (unsigned char *)Malloc(128);
+    hash = (unsigned char *)Malloc(16);
 
-    //use the GPU to perform the color
     MD5_CTX md5;
     MD5_Init(&md5);
     MD5_Update(&md5, password, length);
     MD5_Final(hash, &md5);
-    gpuTime = d_crack(hash, 64, outpass);
+    // for (int k = 0; k < 16; k++) {
+    //   printf("%x", hash[k]);
+    //   if (k == 15) {
+    //     printf("\n");
+    //   }
+    // }
+    gpuTime = d_crack(hash, 16, outpass);
 
     // printf("%s", outpass);
 
