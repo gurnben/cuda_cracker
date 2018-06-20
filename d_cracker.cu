@@ -215,10 +215,13 @@ __global__ void d_crack_kernel(unsigned char * hash, int hashLen, int length,
 //  if (index == 0 || index == 26 ||index == 52) {
 //    printf("inner index: %d\n", inner_index);
 //  }
-  for (int i = (length - 1); i >= 0; i--) {
 
+  int powerSize = 0;
+  for (int i = (length - 1); i >= 0; i--) {
     if ( i <= (length - 1) - 2) {
-        d_result[index] = VALID_CHARS[d_powerOf(blockIdx.x, i) / NUMCHARS];
+  //      printf("power of: %d", d_powerOf(NUMCHARS, powerSize));
+        d_result[index] = VALID_CHARS[blockIdx.x / d_powerOf(NUMCHARS, powerSize)];
+        powerSize++;
     } else if ( i == (length - 1) - 1) {
         d_result[index + i] = VALID_CHARS[blockIdx.x % NUMCHARS];
     } else {
