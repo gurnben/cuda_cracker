@@ -126,15 +126,12 @@ float d_crack(unsigned char * hash, int hashLen, unsigned char * outpass) {
     int j = 0;
     for (int i = 0; i < passoutsize; i+=(passLength + 1)) { //+ 1 corrects for null pointer
       //if (i < 17000)
-    //    printf("i: %d, s: %s\n", i, (unsigned char *) &passwords[i]); // print out generated passwords for debugging
+        // printf("i: %d, s: %s\n", i, (unsigned char *) &passwords[i]); // print out generated passwords for debugging
       // printf("%lu", (unsigned long) passLength);
       MD5_CTX md5;
       MD5_Init(&md5);
       MD5_Update(&md5, &(passwords[i]), (unsigned long) passLength);
       MD5_Final(&hashes[j], &md5);
-      if (malloccmp(&passwords[i], (unsigned char *) "pas", passLength)) {
-        printHash(&hashes[j], hashLen);
-      }
       j += hashLen;
     }
 
@@ -210,8 +207,8 @@ __global__ void d_crack_kernel(unsigned char * hash, int hashLen, int length,
   // printf("blockIdx: %d, blockDim: %d, threadIdx: %d, blockDim mod length: %d\n", blockIdx.x, blockDim.x, threadIdx.x, blockDim.x % length);
 
   int index = (blockIdx.x * blockDim.x + threadIdx.x) * (length + 1);
-  int t = blockIdx.x * blockDim.x + threadIdx.x;
-  int inner_index = gridDim.x;
+  // int t = blockIdx.x * blockDim.x + threadIdx.x;
+  // int inner_index = gridDim.x;
 //  if (index == 0 || index == 26 ||index == 52) {
 //    printf("inner index: %d\n", inner_index);
 //  }
@@ -219,24 +216,45 @@ __global__ void d_crack_kernel(unsigned char * hash, int hashLen, int length,
   int powerSize = 0;
   for (int i = (length - 1); i >= 0; i--) {
     if ( i <= (length - 1) - 2) {
-  //      printf("power of: %d", d_powerOf(NUMCHARS, powerSize));
-        d_result[index] = VALID_CHARS[blockIdx.x / d_powerOf(NUMCHARS, powerSize)];
+//         if (blockIdx.x == 676 && threadIdx.x == 0)
+// {
+//
+//
+// printf("threadIdx: %d, blockIdx.x: %d, powersize: %d, modval: %d, powerof: %d, col %d: %c \n", threadIdx.x, blockIdx.x, powerSize, (blockIdx.x % NUMCHARS),  d_powerOf(NUMCHARS, powerSize) , index + i, VALID_CHARS[(blockIdx.x % NUMCHARS)/ d_powerOf(NUMCHARS, powerSize)]);
+// }
+       d_result[index + i] = VALID_CHARS[blockIdx.x / d_powerOf(NUMCHARS, powerSize)];
         powerSize++;
     } else if ( i == (length - 1) - 1) {
-        d_result[index + i] = VALID_CHARS[blockIdx.x % NUMCHARS];
+
+
+//         if (blockIdx.x == 676 && threadIdx.x == 0)
+// {
+// printf("threadIdx: %d, blockIdx.x: %d, col %d: %c \n", threadIdx.x, blockIdx.x, index + i, VALID_CHARS[blockIdx.x % NUMCHARS]);
+// }
+
+
+       d_result[index + i] = VALID_CHARS[blockIdx.x % NUMCHARS];
     } else {
-    	d_result[index + i] = VALID_CHARS[threadIdx.x];
+
+
+//          if (blockIdx.x == 676 && threadIdx.x == 0)
+// {
+// printf("threadIdx: %d, blockIdx.x: %d, col %d: %c \n", threadIdx.x, blockIdx.x, index + i, VALID_CHARS[threadIdx.x]);
+// }
+
+
+   	d_result[index + i] = VALID_CHARS[threadIdx.x];
     }
 
   //  d_result[index + i] = VALID_CHARS[((blockIdx.x * (length - 1)) + (t % NUMCHARS)) % NUMCHARS];
   //  inner_index /= NUMCHARS;
   }
-
-  // 4 characters
-  //d_result[index]                = VALID_CHARS[blockIdx.x / (NUMCHARS * NUMCHARS)];
-//  d_result[index]            = VALID_CHARS[blockIdx.x / NUMCHARS];
-//  d_result[index + 1]            = VALID_CHARS[blockIdx.x % NUMCHARS];
-//  d_result[index + (length - 1)] = VALID_CHARS[threadIdx.x];
+//
+//   // 4 characters
+// //  d_result[index]                = VALID_CHARS[blockIdx.x / (NUMCHARS * NUMCHARS)];
+  // d_result[index]                 = VALID_CHARS[blockIdx.x / NUMCHARS];
+  // d_result[index + 1]            = VALID_CHARS[blockIdx.x % NUMCHARS];
+  // d_result[index + (length - 1)] = VALID_CHARS[threadIdx.x];
   d_result[index + (length)] = '\0';
 }
 
