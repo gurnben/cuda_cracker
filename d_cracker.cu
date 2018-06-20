@@ -10,7 +10,8 @@
 
 //prototype for the kernel
 __global__ void d_crack_kernel(unsigned char * hash, int hashLen,
-                                int length, unsigned char * d_result);
+                                int length, unsigned char * d_result,
+                                int d_result_size);
 
 //constant array containing all the possible characters in the password
 __constant__ char VALID_CHARS[NUMCHARS];
@@ -88,7 +89,7 @@ float d_crack(unsigned char * hash, int hashLen, unsigned char * outpass) {
     //record the starting time
     CHECK(cudaEventRecord(start_cpu));
 
-    int passLength = 2;
+    int passLength = 3;
     int size = hashLen * sizeof(char);
     int outsize = MAX_PASSWORD_LENGTH * sizeof(char);
     int passoutsize = pow(NUMCHARS, passLength) * (passLength + 1);
@@ -112,7 +113,9 @@ float d_crack(unsigned char * hash, int hashLen, unsigned char * outpass) {
     dim3 block(NUMCHARS, 1, 1);
     dim3 grid(ceil(pow(NUMCHARS, passLength)/(float)(NUMCHARS)), 1);
 
-    d_crack_kernel<<<grid, block>>>(d_hash, hashLen, passLength, d_passwords);
+    printf("%d\n", (int) (NUMCHARS * ceil(pow(NUMCHARS, passLength)/(float)(NUMCHARS))));
+
+    d_crack_kernel<<<grid, block>>>(d_hash, hashLen, passLength, d_passwords, passoutsize);
 
     CHECK(cudaDeviceSynchronize());
 
@@ -122,15 +125,16 @@ float d_crack(unsigned char * hash, int hashLen, unsigned char * outpass) {
 
     int j = 0;
     for (int i = 0; i < passoutsize; i+=(passLength + 1)) { //+ 1 corrects for null pointer
-      // printf("%s\n", (unsigned char *) &passwords[i]); // print out generated passwords for debugging
+      // if (i < 10240)
+      //   printf("%s\n", (unsigned char *) &passwords[i]); // print out generated passwords for debugging
       // printf("%lu", (unsigned long) passLength);
       MD5_CTX md5;
       MD5_Init(&md5);
       MD5_Update(&md5, &(passwords[i]), (unsigned long) passLength);
       MD5_Final(&hashes[j], &md5);
-      // if (malloccmp(&passwords[i], (unsigned char *) "pa", 2)) {
-      //   printHash(&hashes[j], hashLen);
-      // }
+      if (malloccmp(&passwords[i], (unsigned char *) "pas", passLength)) {
+        printHash(&hashes[j], hashLen);
+      }
       j += hashLen;
     }
 
@@ -202,12 +206,18 @@ float d_crack(unsigned char * hash, int hashLen, unsigned char * outpass) {
 */
 
 __global__ void d_crack_kernel(unsigned char * hash, int hashLen, int length,
-                                unsigned char * d_result) {
-  // printf("blockIdx: %d, blockDim: %d, threadIdx: %d\n", blockIdx.x, blockDim.x, threadIdx.x);
-  unsigned char myAttempt[3];
-  int index = (blockIdx.x * blockDim.x + threadIdx.x) * 3;
-  d_result[index] = VALID_CHARS[blockIdx.x];
-  d_result[index + 1] = VALID_CHARS[threadIdx.x];
-  d_result[index + 2] = '\0';
+                                unsigned char * d_result, int d_result_size) {
+  // printf("blockIdx: %d, blockDim: %d, threadIdx: %d, blockDim mod length: %d\n", blockIdx.x, blockDim.x, threadIdx.x, blockDim.x % length);
+  int index = (blockIdx.x * blockDim.x + threadIdx.x) * (length + 1);
+  // if (index == 0) {
+  //   printf("%d", blockDim.x);
+  // }
+  // printf("%d ", blockIdx.x % NUMCHARS);
+  for (int i = 0; i < (length - 1); i++) {
+    d_result[index + i] = VALID_CHARS[blockIdx.x % NUMCHARS];
+  }
+  d_result[index + (length - 1)] = VALID_CHARS[threadIdx.x];
+  d_result[index + (length)] = '\0';
+  // d_result[index] = VALID_CHARS[blockIdx.x];
   // printf("string: %s\n", myAttempt);
 }
