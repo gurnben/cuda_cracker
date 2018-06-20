@@ -13,6 +13,8 @@ __global__ void d_crack_kernel(unsigned char * hash, int hashLen,
                                 int length, unsigned char * d_result,
                                 int d_result_size);
 
+__device__ int d_powerOf(int val, int size);
+
 //constant array containing all the possible characters in the password
 __constant__ char VALID_CHARS[NUMCHARS];
 
@@ -124,7 +126,7 @@ float d_crack(unsigned char * hash, int hashLen, unsigned char * outpass) {
     int j = 0;
     for (int i = 0; i < passoutsize; i+=(passLength + 1)) { //+ 1 corrects for null pointer
       //if (i < 17000)
-        printf("i: %d, s: %s\n", i, (unsigned char *) &passwords[i]); // print out generated passwords for debugging
+    //    printf("i: %d, s: %s\n", i, (unsigned char *) &passwords[i]); // print out generated passwords for debugging
       // printf("%lu", (unsigned long) passLength);
       MD5_CTX md5;
       MD5_Init(&md5);
@@ -213,16 +215,33 @@ __global__ void d_crack_kernel(unsigned char * hash, int hashLen, int length,
 //  if (index == 0 || index == 26 ||index == 52) {
 //    printf("inner index: %d\n", inner_index);
 //  }
-  //for (int i = 0; i < (length - 1); i++) {
+  for (int i = (length - 1); i >= 0; i--) {
+
+    if ( i <= (length - 1) - 2) {
+        d_result[index] = VALID_CHARS[d_powerOf(blockIdx.x, i) / NUMCHARS];
+    } else if ( i == (length - 1) - 1) {
+        d_result[index + i] = VALID_CHARS[blockIdx.x % NUMCHARS];
+    } else {
+    	d_result[index + i] = VALID_CHARS[threadIdx.x];
+    }
 
   //  d_result[index + i] = VALID_CHARS[((blockIdx.x * (length - 1)) + (t % NUMCHARS)) % NUMCHARS];
   //  inner_index /= NUMCHARS;
-  //}
+  }
 
   // 4 characters
   //d_result[index]                = VALID_CHARS[blockIdx.x / (NUMCHARS * NUMCHARS)];
-  d_result[index]            = VALID_CHARS[blockIdx.x / NUMCHARS];
-  d_result[index + 1]            = VALID_CHARS[blockIdx.x % NUMCHARS];
-  d_result[index + (length - 1)] = VALID_CHARS[threadIdx.x];
+//  d_result[index]            = VALID_CHARS[blockIdx.x / NUMCHARS];
+//  d_result[index + 1]            = VALID_CHARS[blockIdx.x % NUMCHARS];
+//  d_result[index + (length - 1)] = VALID_CHARS[threadIdx.x];
   d_result[index + (length)] = '\0';
+}
+
+__device__ int d_powerOf(int val, int size) {
+  for (int i = 0; i < size; i++) {
+    val *= val;
+  }
+
+
+  return val;
 }
