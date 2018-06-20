@@ -113,8 +113,6 @@ float d_crack(unsigned char * hash, int hashLen, unsigned char * outpass) {
     dim3 block(NUMCHARS, 1, 1);
     dim3 grid(ceil(pow(NUMCHARS, passLength)/(float)(NUMCHARS)), 1);
 
-    printf("%d\n", (int) (NUMCHARS * ceil(pow(NUMCHARS, passLength)/(float)(NUMCHARS))));
-
     d_crack_kernel<<<grid, block>>>(d_hash, hashLen, passLength, d_passwords, passoutsize);
 
     CHECK(cudaDeviceSynchronize());
@@ -125,8 +123,8 @@ float d_crack(unsigned char * hash, int hashLen, unsigned char * outpass) {
 
     int j = 0;
     for (int i = 0; i < passoutsize; i+=(passLength + 1)) { //+ 1 corrects for null pointer
-      // if (i < 10240)
-      //   printf("%s\n", (unsigned char *) &passwords[i]); // print out generated passwords for debugging
+      // if (i > 17000)
+        printf("%s\n", (unsigned char *) &passwords[i]); // print out generated passwords for debugging
       // printf("%lu", (unsigned long) passLength);
       MD5_CTX md5;
       MD5_Init(&md5);
@@ -214,7 +212,7 @@ __global__ void d_crack_kernel(unsigned char * hash, int hashLen, int length,
   // }
   // printf("%d ", blockIdx.x % NUMCHARS);
   for (int i = 0; i < (length - 1); i++) {
-    d_result[index + i] = VALID_CHARS[blockIdx.x % NUMCHARS];
+    d_result[index + i] = VALID_CHARS[((blockIdx.x * (length + 1)) + i) % NUMCHARS];
   }
   d_result[index + (length - 1)] = VALID_CHARS[threadIdx.x];
   d_result[index + (length)] = '\0';
