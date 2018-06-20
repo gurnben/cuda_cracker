@@ -123,7 +123,7 @@ float d_crack(unsigned char * hash, int hashLen, unsigned char * outpass) {
 
     int j = 0;
     for (int i = 0; i < passoutsize; i+=(passLength + 1)) { //+ 1 corrects for null pointer
-      if (i < 17000)
+      //if (i < 17000)
         printf("i: %d, s: %s\n", i, (unsigned char *) &passwords[i]); // print out generated passwords for debugging
       // printf("%lu", (unsigned long) passLength);
       MD5_CTX md5;
@@ -208,14 +208,21 @@ __global__ void d_crack_kernel(unsigned char * hash, int hashLen, int length,
   // printf("blockIdx: %d, blockDim: %d, threadIdx: %d, blockDim mod length: %d\n", blockIdx.x, blockDim.x, threadIdx.x, blockDim.x % length);
 
   int index = (blockIdx.x * blockDim.x + threadIdx.x) * (length + 1);
+  int t = blockIdx.x * blockDim.x + threadIdx.x;
   int inner_index = gridDim.x;
-  for (int i = 0; i < (length - 1); i++) {
-    // if (index == 0) {
-    //   printf("%d", inner_index);
-    // }
-    d_result[index + i] = VALID_CHARS[((blockIdx.x * (length - 1)) + (inner_index % NUMCHARS)) % NUMCHARS];
-    inner_index /= NUMCHARS;
-  }
+//  if (index == 0 || index == 26 ||index == 52) {
+//    printf("inner index: %d\n", inner_index);
+//  }
+  //for (int i = 0; i < (length - 1); i++) {
+
+  //  d_result[index + i] = VALID_CHARS[((blockIdx.x * (length - 1)) + (t % NUMCHARS)) % NUMCHARS];
+  //  inner_index /= NUMCHARS;
+  //}
+
+  // 4 characters
+  //d_result[index]                = VALID_CHARS[blockIdx.x / (NUMCHARS * NUMCHARS)];
+  d_result[index]            = VALID_CHARS[blockIdx.x / NUMCHARS];
+  d_result[index + 1]            = VALID_CHARS[blockIdx.x % NUMCHARS];
   d_result[index + (length - 1)] = VALID_CHARS[threadIdx.x];
   d_result[index + (length)] = '\0';
 }
