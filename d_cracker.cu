@@ -13,6 +13,9 @@ __global__ void d_crack_kernel(unsigned char * hash, int hashLen,
                                 int length, unsigned char * d_result,
                                 int d_result_size);
 
+__global__ void d_generate_kernel(unsigned char * passwords, int length, int n,
+                                    unsigned char * d_result);
+
 __device__ int d_powerOf(int val, int size);
 
 //constant array containing all the possible characters in the password
@@ -91,15 +94,12 @@ float d_crack(unsigned char * hash, int hashLen, unsigned char * outpass) {
     //record the starting time
     CHECK(cudaEventRecord(start_cpu));
 
-    int passLength = 3;
-    int size = hashLen * sizeof(char);
-    int outsize = MAX_PASSWORD_LENGTH * sizeof(char);
-    int passoutsize = pow(NUMCHARS, passLength) * (passLength + 1);
+    int passLength = 5;
+    int size = 2 * NUMCHARS * sizeof(unsigned char);
+    int outsize = pow(NUMCHARS, 2) * 3;
 
-    unsigned char * d_hash;
-    CHECK(cudaMalloc((void**)&d_hash, size));
     unsigned char * d_passwords;
-    CHECK(cudaMalloc((void**)&d_passwords, passoutsize));
+    CHECK(cudaMalloc((void**)&d_passwords, size));
     unsigned char * d_result;
     CHECK(cudaMalloc((void**)&d_result, outsize));
 
@@ -108,23 +108,126 @@ float d_crack(unsigned char * hash, int hashLen, unsigned char * outpass) {
     for (int i = 0; i < NUMCHARS; i++) {
       VALID_CHARS_CPU[i] = (char)(i + 97);
     }
+
+    /*****************************KERNAL FOR LENGTH 2**************************/
+    char STARTING_PASSES[NUMCHARS * 2];
+    for (int i = 0; i < NUMCHARS; i++) {
+      STARTING_PASSES[i * 2] = VALID_CHARS_CPU[i];
+      STARTING_PASSES[(i * 2) + 1] = '\0';
+    }
+
+    //Copy the starting passwords array and valid characters to the GPU
     CHECK(cudaMemcpyToSymbol(VALID_CHARS, VALID_CHARS_CPU, NUMCHARS * sizeof(char)));
+    CHECK(cudaMemcpy(d_passwords, STARTING_PASSES, 2 * NUMCHARS, cudaMemcpyHostToDevice));
 
-    CHECK(cudaMemcpy(d_hash, hash, size, cudaMemcpyHostToDevice));
+    dim3 block(BLOCKDIM, 1, 1);
+    dim3 grid(1, 1, 1);
 
-    dim3 block(NUMCHARS, 1, 1);
-    dim3 grid(ceil(pow(NUMCHARS, passLength)/(float)(NUMCHARS)), 1);
-
-    d_crack_kernel<<<grid, block>>>(d_hash, hashLen, passLength, d_passwords, passoutsize);
+    d_generate_kernel<<<grid, block>>>(d_passwords, 1, NUMCHARS, d_result);
 
     CHECK(cudaDeviceSynchronize());
 
-    unsigned char * passwords = (unsigned char *) Malloc(passoutsize);
-    CHECK(cudaMemcpy(passwords, d_passwords, passoutsize, cudaMemcpyDeviceToHost));
-    unsigned char * hashes = (unsigned char *) Malloc(pow(NUMCHARS, passLength) * hashLen);
+    unsigned char * passwords = (unsigned char *) Malloc(outsize);
+    CHECK(cudaMemcpy(passwords, d_result, outsize, cudaMemcpyDeviceToHost));
 
+    CHECK(cudaFree(d_passwords));
+    CHECK(cudaFree(d_result));
+
+    /**************passwords NOW HOLDS ALL LENGTH 2 PASSWORDS******************/
+
+    // for (int i = 0; i < outsize; i += 3) {
+    //   printf("%s\n", &passwords[i]);
+    // }
+
+    /*****************************KERNAL FOR LENGTH 3**************************/
+
+    size = pow(NUMCHARS, 2) * 3;
+    outsize = pow(NUMCHARS, 3) * 4;
+
+    CHECK(cudaMalloc((void**)&d_passwords, size));
+    CHECK(cudaMalloc((void**)&d_result, outsize));
+
+    //Copy the starting passwords array and valid characters to the GPU
+    CHECK(cudaMemcpy(d_passwords, passwords, (size), cudaMemcpyHostToDevice));
+
+    dim3 block1(BLOCKDIM, 1, 1);
+    dim3 grid1(ceil(pow(NUMCHARS, 2)/(float)BLOCKDIM), 1, 1);
+
+    d_generate_kernel<<<grid1, block1>>>(d_passwords, 2, pow(NUMCHARS, 3), d_result);
+
+    CHECK(cudaDeviceSynchronize());
+
+    passwords = (unsigned char *) Malloc(outsize);
+    CHECK(cudaMemcpy(passwords, d_result, outsize, cudaMemcpyDeviceToHost));
+
+    CHECK(cudaFree(d_passwords));
+    CHECK(cudaFree(d_result));
+
+    /**************passwords NOW HOLDS ALL LENGTH 3 PASSWORDS******************/
+
+    for (int i = 0; i < outsize; i += 4) {
+      printf("%s\n", &passwords[i]);
+    }
+
+    /*****************************KERNAL FOR LENGTH 4**************************/
+
+    size = pow(NUMCHARS, 3) * 4;
+    outsize = pow(NUMCHARS, 4) * 5;
+
+    CHECK(cudaMalloc((void**)&d_passwords, size));
+    CHECK(cudaMalloc((void**)&d_result, outsize));
+
+    //Copy the starting passwords array and valid characters to the GPU
+    CHECK(cudaMemcpy(d_passwords, passwords, size, cudaMemcpyHostToDevice));
+
+    free(passwords);
+
+    dim3 block2(BLOCKDIM, 1, 1);
+    dim3 grid2(ceil(pow(NUMCHARS, 3)/(float)BLOCKDIM), 1, 1);
+
+    d_generate_kernel<<<grid2, block2>>>(d_passwords, 3, pow(NUMCHARS, 4), d_result);
+
+    CHECK(cudaDeviceSynchronize());
+
+    passwords = (unsigned char *) Malloc(outsize);
+    CHECK(cudaMemcpy(passwords, d_result, outsize, cudaMemcpyDeviceToHost));
+
+    CHECK(cudaFree(d_passwords));
+    CHECK(cudaFree(d_result));
+
+    /**************passwords NOW HOLDS ALL LENGTH 4 PASSWORDS******************/
+
+    /*****************************KERNAL FOR LENGTH 5**************************/
+
+    size = pow(NUMCHARS, 4) * 5;
+    outsize = pow(NUMCHARS, 5) * 6;
+
+    CHECK(cudaMalloc((void**)&d_passwords, size));
+    CHECK(cudaMalloc((void**)&d_result, outsize));
+
+    //Copy the starting passwords array and valid characters to the GPU
+    CHECK(cudaMemcpy(d_passwords, passwords, size, cudaMemcpyHostToDevice));
+
+    free(passwords);
+
+    dim3 block3(BLOCKDIM, 1, 1);
+    dim3 grid3(ceil(pow(NUMCHARS, 4)/(float)BLOCKDIM), 1, 1);
+
+    d_generate_kernel<<<grid3, block3>>>(d_passwords, 4, pow(NUMCHARS, 5), d_result);
+
+    CHECK(cudaDeviceSynchronize());
+
+    passwords = (unsigned char *) Malloc(outsize);
+    CHECK(cudaMemcpy(passwords, d_result, outsize, cudaMemcpyDeviceToHost));
+
+    CHECK(cudaFree(d_passwords));
+    CHECK(cudaFree(d_result));
+
+    /**************passwords NOW HOLDS ALL LENGTH 4 PASSWORDS******************/
+
+    unsigned char * hashes = (unsigned char *) Malloc(pow(NUMCHARS, passLength) * hashLen);
     int j = 0;
-    for (int i = 0; i < passoutsize; i+=(passLength + 1)) { //+ 1 corrects for null pointer
+    for (int i = 0; i < outsize; i+=(passLength + 1)) { //+ 1 corrects for null pointer
       //if (i < 17000)
         // printf("i: %d, s: %s\n", i, (unsigned char *) &passwords[i]); // print out generated passwords for debugging
       // printf("%lu", (unsigned long) passLength);
@@ -134,8 +237,6 @@ float d_crack(unsigned char * hash, int hashLen, unsigned char * outpass) {
       MD5_Final(&hashes[j], &md5);
       j += hashLen;
     }
-
-    //NOTE: Hashes are forming correctly and we are getting the correct hash for input = 2
 
     unsigned char * ourHash = (unsigned char *) Malloc(hashLen);
     int numHashes = pow(NUMCHARS, passLength) * hashLen;
@@ -157,26 +258,7 @@ float d_crack(unsigned char * hash, int hashLen, unsigned char * outpass) {
       }
       z +=(passLength + 1);
     }
-    // for (int i = 0; i < pow(NUMCHARS, passLength) * hashLen; i++) {
-    //   ourHash[i % hashLen] = hashes[i];
-    //   if (((i % hashLen) == 0) && malloccmp(ourHash, hashes, hashLen)) {
-    //     printf("Hello");
-    //     for (int j = 0; j < hashLen; j++) {
-    //       printf("%x", ourHash[j]);
-    //       if (j == hashLen - 1) {
-    //         printf("\n");
-    //       }
-    //     }
-    //     for (int k = 0; k < hashLen; k++) {
-    //       ourHash[k] = '\0';
-    //     }
-    //   }
-    // }
 
-    CHECK(cudaMemcpy(outpass, d_result, outsize, cudaMemcpyDeviceToHost));
-
-    CHECK(cudaFree(d_hash));
-    CHECK(cudaFree(d_result));
     free(ourHash);
     free(passwords);
     free(hashes);
@@ -187,6 +269,36 @@ float d_crack(unsigned char * hash, int hashLen, unsigned char * outpass) {
     //calculate the elapsed time between the two events
     CHECK(cudaEventElapsedTime(&cpuMsecTime, start_cpu, stop_cpu));
     return cpuMsecTime;
+}
+
+/*d_generate_kernel
+*  Kernal code executed by each thread to generate a list of all possible
+*  passwords of length n + 1.  To do this, each thread will work on one element
+*  in passwords and append all characters in VALID_CHARS to it. This kernal
+*  works in place, so it will alter the input array.
+*
+*  @params:
+*   passwords - array filled with current passwords to build off of.
+*   length    - length of the given passwords
+*   n         - number of items currently in passwords array
+*   d_result  - location to place newly generated passwords.
+*/
+__global__ void d_generate_kernel(unsigned char * passwords, int length, int n,
+                                    unsigned char * d_result) {
+  int index = blockIdx.x * blockDim.x + threadIdx.x;
+  if (index < n) {
+    int r_index = index * (length + 2) * NUMCHARS;
+    int p_index = index * (length + 1);
+    // printf("%d\n", p_index);
+    // printf("%d\n", r_index);
+    for (int i = 0; i < NUMCHARS; i++, r_index += (length + 2)) {
+      for (int j = 0; j < length; j++) {
+        d_result[r_index + j] = passwords[p_index + j];
+      }
+      d_result[r_index + length] = VALID_CHARS[i];
+      d_result[r_index + length + 1] = '\0';
+    }
+  }
 }
 
 /*d_crack_kernel
