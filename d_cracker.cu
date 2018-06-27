@@ -78,9 +78,6 @@ int findPass(unsigned char * passwords, unsigned char * hash, unsigned long outs
   unsigned long j = 0;
   unsigned long x;
   for (x = 0; x < outsize; x+=(passLength + 1)) { //+ 1 corrects for null pointer
-    //if (i < 17000)
-      // printf("i: %d, s: %s\n", i, (unsigned char *) &passwords[i]); // print out generated passwords for debugging
-    // printf("%lu", (unsigned long) passLength);
     MD5_CTX md5;
     MD5_Init(&md5);
     MD5_Update(&md5, &(passwords[x]), (unsigned long) passLength);
@@ -188,7 +185,6 @@ float d_crack(unsigned char * hash, int hashLen, unsigned char * outpass) {
       if ((size + outsize) >= GPUMEMORY) {
         printf("out of memory\n");
         for (unsigned long j = 0; j < size; j+=((unsigned long) ceil(GPUMEMORY * (size/(long double)outsize)))) {
-          printf("j=%lu, passwords + j=%lu, j+=%lu\n", j, passwords + j, (unsigned long) ceil(GPUMEMORY * (size/(long double)outsize)));
           unsigned long itersize = GPUMEMORY * (size/outsize);
           unsigned long iteroutsize = GPUMEMORY * (1 - (size/outsize));
 
@@ -196,7 +192,7 @@ float d_crack(unsigned char * hash, int hashLen, unsigned char * outpass) {
           CHECK(cudaMalloc((void**)&d_result, iteroutsize));
 
           //Copy the starting passwords array and valid characters to the GPU
-          CHECK(cudaMemcpy(d_passwords, (passwords + j), itersize, cudaMemcpyHostToDevice));
+          CHECK(cudaMemcpy(d_passwords, &passwords[j], itersize, cudaMemcpyHostToDevice));
 
           dim3 block3(BLOCKDIM, 1, 1);
           dim3 grid3(ceil(pow(NUMCHARS, (i - 1))/(float)BLOCKDIM), 1, 1);
@@ -204,6 +200,8 @@ float d_crack(unsigned char * hash, int hashLen, unsigned char * outpass) {
           d_generate_kernel<<<grid3, block3>>>(d_passwords, (i - 1), (itersize/(i-1)), d_result);
 
           CHECK(cudaDeviceSynchronize());
+
+          size_t outputsize = (size_t) iteroutsize;
 
           printf("iteroutsize: %lu\n", iteroutsize);
           unsigned char * outpasswords = (unsigned char *) Malloc(iteroutsize);
@@ -217,6 +215,8 @@ float d_crack(unsigned char * hash, int hashLen, unsigned char * outpass) {
           if (found) {
             break;
           }
+
+          free(outpasswords);
         }
       }
       else {
@@ -249,134 +249,6 @@ float d_crack(unsigned char * hash, int hashLen, unsigned char * outpass) {
       }
     }
     free(passwords);
-    //
-    // // for (int i = 0; i < outsize; i += 3) {
-    // //   printf("%s\n", &passwords[i]);
-    // // }
-    //
-    // /*****************************KERNAL FOR LENGTH 3**************************/
-    //
-    // size = pow(NUMCHARS, 2) * 3;
-    // outsize = pow(NUMCHARS, 3) * 4;
-    //
-    // CHECK(cudaMalloc((void**)&d_passwords, size));
-    // CHECK(cudaMalloc((void**)&d_result, outsize));
-    //
-    // //Copy the starting passwords array and valid characters to the GPU
-    // CHECK(cudaMemcpy(d_passwords, passwords, (size), cudaMemcpyHostToDevice));
-    //
-    // dim3 block1(BLOCKDIM, 1, 1);
-    // dim3 grid1(ceil(pow(NUMCHARS, 2)/(float)BLOCKDIM), 1, 1);
-    //
-    // d_generate_kernel<<<grid1, block1>>>(d_passwords, 2, pow(NUMCHARS, 3), d_result);
-    //
-    // CHECK(cudaDeviceSynchronize());
-    //
-    // passwords = (unsigned char *) Malloc(outsize);
-    // CHECK(cudaMemcpy(passwords, d_result, outsize, cudaMemcpyDeviceToHost));
-    //
-    // CHECK(cudaFree(d_passwords));
-    // CHECK(cudaFree(d_result));
-    //
-    // /**************passwords NOW HOLDS ALL LENGTH 3 PASSWORDS******************/
-    //
-    // for (int i = 0; i < outsize; i += 4) {
-    //   printf("%s\n", &passwords[i]);
-    // }
-    //
-    // /*****************************KERNAL FOR LENGTH 4**************************/
-    //
-    // size = pow(NUMCHARS, 3) * 4;
-    // outsize = pow(NUMCHARS, 4) * 5;
-    //
-    // CHECK(cudaMalloc((void**)&d_passwords, size));
-    // CHECK(cudaMalloc((void**)&d_result, outsize));
-    //
-    // //Copy the starting passwords array and valid characters to the GPU
-    // CHECK(cudaMemcpy(d_passwords, passwords, size, cudaMemcpyHostToDevice));
-    //
-    // free(passwords);
-    //
-    // dim3 block2(BLOCKDIM, 1, 1);
-    // dim3 grid2(ceil(pow(NUMCHARS, 3)/(float)BLOCKDIM), 1, 1);
-    //
-    // d_generate_kernel<<<grid2, block2>>>(d_passwords, 3, pow(NUMCHARS, 4), d_result);
-    //
-    // CHECK(cudaDeviceSynchronize());
-    //
-    // passwords = (unsigned char *) Malloc(outsize);
-    // CHECK(cudaMemcpy(passwords, d_result, outsize, cudaMemcpyDeviceToHost));
-    //
-    // CHECK(cudaFree(d_passwords));
-    // CHECK(cudaFree(d_result));
-    //
-    // /**************passwords NOW HOLDS ALL LENGTH 4 PASSWORDS******************/
-    //
-    // /*****************************KERNAL FOR LENGTH 5**************************/
-    //
-    // size = pow(NUMCHARS, 4) * 5;
-    // outsize = pow(NUMCHARS, 5) * 6;
-    //
-    // CHECK(cudaMalloc((void**)&d_passwords, size));
-    // CHECK(cudaMalloc((void**)&d_result, outsize));
-    //
-    // //Copy the starting passwords array and valid characters to the GPU
-    // CHECK(cudaMemcpy(d_passwords, passwords, size, cudaMemcpyHostToDevice));
-    //
-    // free(passwords);
-    //
-    // dim3 block3(BLOCKDIM, 1, 1);
-    // dim3 grid3(ceil(pow(NUMCHARS, 4)/(float)BLOCKDIM), 1, 1);
-    //
-    // d_generate_kernel<<<grid3, block3>>>(d_passwords, 4, pow(NUMCHARS, 5), d_result);
-    //
-    // CHECK(cudaDeviceSynchronize());
-    //
-    // passwords = (unsigned char *) Malloc(outsize);
-    // CHECK(cudaMemcpy(passwords, d_result, outsize, cudaMemcpyDeviceToHost));
-    //
-    // CHECK(cudaFree(d_passwords));
-    // CHECK(cudaFree(d_result));
-    //
-    // /**************passwords NOW HOLDS ALL LENGTH 5 PASSWORDS******************/
-
-    // unsigned char * hashes = (unsigned char *) Malloc(pow(NUMCHARS, passLength) * hashLen);
-    // int j = 0;
-    // for (int i = 0; i < outsize; i+=(passLength + 1)) { //+ 1 corrects for null pointer
-    //   //if (i < 17000)
-    //     // printf("i: %d, s: %s\n", i, (unsigned char *) &passwords[i]); // print out generated passwords for debugging
-    //   // printf("%lu", (unsigned long) passLength);
-    //   MD5_CTX md5;
-    //   MD5_Init(&md5);
-    //   MD5_Update(&md5, &(passwords[i]), (unsigned long) passLength);
-    //   MD5_Final(&hashes[j], &md5);
-    //   j += hashLen;
-    // }
-    //
-    // unsigned char * ourHash = (unsigned char *) Malloc(hashLen);
-    // int numHashes = pow(NUMCHARS, passLength) * hashLen;
-    // int z = 0;
-    // for (int i = 0; i < numHashes; i+=hashLen) {
-    //   // printHash(hash, hashLen);
-    //   for (int j = 0; j < hashLen; j++) {
-    //     ourHash[j] = hashes[i + j];
-    //   }
-    //   // printHash(&hashes[i], hashLen);
-    //   // printf("%d\n", malloccmp(ourHash, hash, hashLen));
-    //   if (malloccmp(ourHash, hash, hashLen)) {
-    //     //TODO: Break here, we found the password
-    //     printf("Password: ");
-    //     printPassword(&passwords[z], 1);
-    //   }
-    //   for (int k = 0; k < hashLen; k++) {
-    //     ourHash[k] = '\0';
-    //   }
-    //   z +=(passLength + 1);
-    // }
-    //
-    // free(ourHash);
-    // free(passwords);
-    // free(hashes);
 
     //record the ending time and wait for event to complete
     CHECK(cudaEventRecord(stop_cpu));
@@ -414,82 +286,4 @@ __global__ void d_generate_kernel(unsigned char * passwords, int length, unsigne
       d_result[r_index + length + 1] = '\0';
     }
   }
-}
-
-/*d_crack_kernel
-*  Kernel code executed by each thread on its own data when the kernel is
-*  launched. Constant memory is used for the set of all possible characters,
-*  in this case, lowercase.
-*  Threads cooperate to help build a possible password built from the Constant
-*  character array.
-*  @params:
-*   hash     - array filled with characters to crack.
-*   hashLen  - length of the given hash
-*   length   - the length of the passwords to generate
-*   d_result - array of possible passwords.
-*/
-
-__global__ void d_crack_kernel(unsigned char * hash, int hashLen, int length,
-                                unsigned char * d_result, int d_result_size) {
-  // printf("blockIdx: %d, blockDim: %d, threadIdx: %d, blockDim mod length: %d\n", blockIdx.x, blockDim.x, threadIdx.x, blockDim.x % length);
-
-  int index = (blockIdx.x * blockDim.x + threadIdx.x) * (length + 1);
-  // int t = blockIdx.x * blockDim.x + threadIdx.x;
-  // int inner_index = gridDim.x;
-//  if (index == 0 || index == 26 ||index == 52) {
-//    printf("inner index: %d\n", inner_index);
-//  }
-
-  int powerSize = 0;
-  for (int i = (length - 1); i >= 0; i--) {
-    if ( i <= (length - 1) - 2) {
-//         if (blockIdx.x == 676 && threadIdx.x == 0)
-// {
-//
-//
-// printf("threadIdx: %d, blockIdx.x: %d, powersize: %d, modval: %d, powerof: %d, col %d: %c \n", threadIdx.x, blockIdx.x, powerSize, (blockIdx.x % NUMCHARS),  d_powerOf(NUMCHARS, powerSize) , index + i, VALID_CHARS[(blockIdx.x % NUMCHARS)/ d_powerOf(NUMCHARS, powerSize)]);
-// }
-       d_result[index + i] = VALID_CHARS[blockIdx.x / d_powerOf(NUMCHARS, powerSize)];
-        powerSize++;
-    } else if ( i == (length - 1) - 1) {
-
-
-//         if (blockIdx.x == 676 && threadIdx.x == 0)
-// {
-// printf("threadIdx: %d, blockIdx.x: %d, col %d: %c \n", threadIdx.x, blockIdx.x, index + i, VALID_CHARS[blockIdx.x % NUMCHARS]);
-// }
-
-
-       d_result[index + i] = VALID_CHARS[blockIdx.x % NUMCHARS];
-    } else {
-
-
-//          if (blockIdx.x == 676 && threadIdx.x == 0)
-// {
-// printf("threadIdx: %d, blockIdx.x: %d, col %d: %c \n", threadIdx.x, blockIdx.x, index + i, VALID_CHARS[threadIdx.x]);
-// }
-
-
-   	d_result[index + i] = VALID_CHARS[threadIdx.x];
-    }
-
-  //  d_result[index + i] = VALID_CHARS[((blockIdx.x * (length - 1)) + (t % NUMCHARS)) % NUMCHARS];
-  //  inner_index /= NUMCHARS;
-  }
-//
-//   // 4 characters
-// //  d_result[index]                = VALID_CHARS[blockIdx.x / (NUMCHARS * NUMCHARS)];
-  // d_result[index]                 = VALID_CHARS[blockIdx.x / NUMCHARS];
-  // d_result[index + 1]            = VALID_CHARS[blockIdx.x % NUMCHARS];
-  // d_result[index + (length - 1)] = VALID_CHARS[threadIdx.x];
-  d_result[index + (length)] = '\0';
-}
-
-__device__ int d_powerOf(int val, int size) {
-  for (int i = 0; i < size; i++) {
-    val *= val;
-  }
-
-
-  return val;
 }

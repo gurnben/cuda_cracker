@@ -33,16 +33,16 @@ int main(int argc, char * argv[]) {
 
     hash = (unsigned char *)Malloc(16);
 
+    // char * x = (char *) Malloc(7000000000ull);
+    //
+    // for (int i = 0; i < 7000000000; i++) {
+    //   x[i] = 'A';
+    // }
+
     MD5_CTX md5;
     MD5_Init(&md5);
     MD5_Update(&md5, password, length);
     MD5_Final(hash, &md5);
-    // for (int k = 0; k < 16; k++) {
-    //   printf("%x", hash[k]);
-    //   if (k == 15) {
-    //     printf("\n");
-    //   }
-    // }
     gpuTime = d_crack(hash, 16, outpass);
 
     // printf("%s", outpass);
