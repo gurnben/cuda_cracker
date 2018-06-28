@@ -85,14 +85,14 @@ int findPass(unsigned char * passwords, unsigned char * hash, unsigned long outs
     j += hashLen;
   }
 
-  printf("Last Iterated Password: %s\n", (char *) &passwords[x - (passLength + 1)]);
+  printf("Last password in set: %s\n", (char *) &passwords[x - (passLength + 1)]);
 
   unsigned char * ourHash = (unsigned char *) Malloc(hashLen);
   unsigned long numHashes = pow(NUMCHARS, passLength) * hashLen;
   unsigned long z = 0;
-  for (unsigned long i = 0; i < numHashes; i+=hashLen) {
+  for (unsigned long i = 0; i < (unsigned long) numHashes; i+=hashLen) {
     // printHash(hash, hashLen);
-    for (unsigned long j = 0; j < hashLen; j++) {
+    for (unsigned long j = 0; j < (unsigned long) hashLen; j++) {
       ourHash[j] = hashes[i + j];
     }
     // printHash(&hashes[i], hashLen);
@@ -180,10 +180,10 @@ float d_crack(unsigned char * hash, int hashLen, unsigned char * outpass) {
       size = pow(NUMCHARS, (i - 1)) * i;
       outsize = pow(NUMCHARS, i) * (i + 1);
 
-      printf("Size + Outsize: %lu\n", size + outsize);
+      printf("GPU memory usage (in bytes): %lu\n", size + outsize);
 
       if ((size + outsize) >= GPUMEMORY) {
-        printf("out of memory\n");
+        printf("Exceeding GPU Memory\n");
         for (unsigned long j = 0; j < size; j+=((unsigned long) ceil(GPUMEMORY * (size/(long double)outsize)))) {
           unsigned long itersize = GPUMEMORY * (size/outsize);
           unsigned long iteroutsize = GPUMEMORY * (1 - (size/outsize));
@@ -201,9 +201,7 @@ float d_crack(unsigned char * hash, int hashLen, unsigned char * outpass) {
 
           CHECK(cudaDeviceSynchronize());
 
-          size_t outputsize = (size_t) iteroutsize;
-
-          printf("iteroutsize: %lu\n", iteroutsize);
+          printf("Iteration output size (in bytes): %lu\n", iteroutsize);
           unsigned char * outpasswords = (unsigned char *) Malloc(iteroutsize);
           CHECK(cudaMemcpy(outpasswords, d_result, iteroutsize, cudaMemcpyDeviceToHost));
 

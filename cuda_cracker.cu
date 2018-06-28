@@ -33,19 +33,13 @@ int main(int argc, char * argv[]) {
 
     hash = (unsigned char *)Malloc(16);
 
-    // char * x = (char *) Malloc(7000000000ull);
-    //
-    // for (int i = 0; i < 7000000000; i++) {
-    //   x[i] = 'A';
-    // }
-
     MD5_CTX md5;
     MD5_Init(&md5);
     MD5_Update(&md5, password, length);
     MD5_Final(hash, &md5);
     gpuTime = d_crack(hash, 16, outpass);
 
-    // printf("%s", outpass);
+    printf("Password took %f ms to crack!\n", gpuTime);
 
     free(outpass);
     free(hash);
@@ -72,33 +66,10 @@ void parseCommandArgs(int argc, char * argv[], unsigned char ** password,
     int passIdx = argc - 1;
     //Password Entered must be 1 character or longer
     int len = strlen(argv[passIdx]);
-    if (len < 1) printUsage();
-    if (len > 100) printUsage();
+    if (len < 3) printUsage();
+    if (len > 6) printUsage();
     (*password) = (unsigned char *) argv[passIdx];
     (*length) = (unsigned long) len;
-
-    //     Examples from Dr. Norris' code for other arguments
-    // for (int i = 1; i < argc - 1; i++)
-    // {
-    //     //mask width
-    //     if (strncmp("-m", argv[i], 3) == 0) {
-    //         mskW = atoi(argv[i+1]);
-    //         if (mskW <= 0 || mskW > MAX_MASK_WIDTH) printUsage();
-    //         if ((mskW % 2) != 1) printUsage();
-    //         i++;
-    //     }
-    //     else if (strncmp("-s", argv[i], 3) == 0) {
-    //         strd = atoi(argv[i+1]);
-    //         if (strd != 1 && strd != 32 && strd != 64 && strd != 128) printUsage();
-    //         i++;
-    //     //save output files
-    //     }
-    //     else if (strncmp("-save", argv[i], 6) == 0) {
-    //         save = 1;
-    //     }
-    //     else
-    //         printUsage();
-    // }
 }
 
 /*printUsage
@@ -110,7 +81,7 @@ void printUsage()
     printf("This application takes as input a password to 'crack'.\n");
     printf("\nusage: cuda_cracker <password>\n");
     printf("           <password> will be hashed, and the kernal will find the password from the hash");
-    printf("           <password> must be between 1 and 100 characters");
+    printf("           <password> must be between 2 and 6 characters");
     printf("Examples:\n");
     printf("./cuda_cracker password123\n");
     exit(EXIT_FAILURE);
