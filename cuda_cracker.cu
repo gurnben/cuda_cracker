@@ -80,9 +80,9 @@ void printUsage()
 {
     printf("This application takes as input a password to 'crack'.\n");
     printf("\nusage: cuda_cracker <password>\n");
-    printf("           <password> will be hashed, and the kernal will find the password from the hash");
-    printf("           <password> must be between 2 and 6 characters");
+    printf("           <password> will be hashed, and the kernal will find the password from the hash\n");
+    printf("           <password> must be between 2 and 6 characters\n");
     printf("Examples:\n");
-    printf("./cuda_cracker password123\n");
+    printf("./cuda_cracker paswrd\n");
     exit(EXIT_FAILURE);
 }
